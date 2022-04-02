@@ -55,8 +55,8 @@ def create_perceptualnet(opt):
     # Get the first 15 layers of vgg16, which is conv4_3
     perceptualnet = network.PerceptualNet()
     # Pre-trained VGG-16
-    pretrained_dict = torch.load(opt.perceptual_path)
-    load_dict(perceptualnet, pretrained_dict)
+    # pretrained_dict = torch.load(opt.perceptual_path)
+    # load_dict(perceptualnet, pretrained_dict)
     # It does not gradient
     for param in perceptualnet.parameters():
         param.requires_grad = False

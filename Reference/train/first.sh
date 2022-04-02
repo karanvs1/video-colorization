@@ -1,12 +1,11 @@
-python train.py \
+python3 train.py \
 --pre_train True \
 --save_mode 'epoch' \
 --save_by_epoch 1 \
 --save_by_iter 10000 \
 --save_path './models' \
 --sample_path './samples' \
---load_name './trained_models/First_Stage_final.pth' \
---feature_extractor_path './trained_models/resnet50_fc_in_epoch150_bs256.pth' \
+--feature_extractor_path './resnet50_in_rgb_epoch150_bs512.pth' \
 --pwcnet_path './trained_models/pwcNet-default.pytorch' \
 --perceptual_path './trained_models/vgg16_pretrained.pth' \
 --video_class_txt './txt/DAVIS_videvo_train_class.txt' \

@@ -1,0 +1,3 @@
+https://github.com/ChenyangLEI/automatic-video-colorization (VGG pretrained maybe from here)
+https://github.com/phoenix104104/fast_blind_video_consistency#dataset (DAtaset maybe from here)
+https://dbcollection.readthedocs.io/en/latest/datasets/imagenet.html# (ImageNet Dataset dbcollection, but unsure how to load in code)

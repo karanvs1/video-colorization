@@ -1,4 +1,5 @@
-python3 train.py \
+echo Testing
+python testing.py \
 --pre_train True \
 --save_mode 'epoch' \
 --save_by_epoch 1 \

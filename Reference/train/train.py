@@ -77,18 +77,18 @@ if __name__ == "__main__":
     # ----------------------------------------
     #       Choose pre / continue train
     # ----------------------------------------
-    import trainer_fisrt_stage
+    import trainer_first_stage
     # it is easy to replace it using other trainers
     import trainer_second_stage
     if opt.pre_train:
         if opt.gan_mode == 'no':
-            trainer_fisrt_stage.trainer_noGAN(opt)
+            trainer_first_stage.trainer_noGAN(opt)
         if opt.gan_mode == 'LSGAN':
-            trainer_fisrt_stage.trainer_LSGAN(opt)
+            trainer_first_stage.trainer_LSGAN(opt)
         if opt.gan_mode == 'WGAN':
-            trainer_fisrt_stage.trainer_WGAN(opt)
+            trainer_first_stage.trainer_WGAN(opt)
         if opt.gan_mode == 'WGANGP':
-            trainer_fisrt_stage.trainer_WGANGP(opt)
+            trainer_first_stage.trainer_WGANGP(opt)
     else:
         if opt.gan_mode == 'no':
             trainer_second_stage.trainer_noGAN(opt)

@@ -1,6 +1,17 @@
+# Environment
+.vcgan
+
+
 # Pycache
 *.pyc
+
+# Folders
+.\Reference\dataset\DAVIS_videvo_train
+.\Reference\dataset\ILSVRC2012_train
+.\Reference\dataset
 
 # Documents
 
 # Other
+*.jpg
+*.jpeg

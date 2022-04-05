@@ -20,15 +20,19 @@ pip install wandb torch-summary
 
 # Download the data and weights:
 
-#DAVIS
-mkdir ~/video-colorization/Reference/models
+# Dataset
+mkdir ~/video-colorization/Reference/dataset
+cd ~/video-colorization/Reference/dataset
+wget http://vllab.ucmerced.edu/wlai24/video_consistency/data/train.zip 
+unzip train.zip 
 wget https://data.vision.ee.ethz.ch/csergi/share/davis/DAVIS-2017-trainval-480p.zip   
-unzip DAVIS-2017-trainval-480p.zip -d ~/video-colorization/Reference/models/
+unzip DAVIS-2017-trainval-480p.zip -d ~/video-colorization/Reference/dataset/
 
 #ResNet:
 mv cmudrive/11785_CMU/project_data/prev_data/resnet50_in_rgb_epoch150_bs512.pth ~/video-colorization/Reference/models/
 
 #VGG16:
+mkdir ~/video-colorization/Reference/models
 wget "https://hkustconnect-my.sharepoint.com/:u:/g/personal/cleiaa_connect_ust_hk/EZeGsvuqh1dJr0E2Fxf6IKoBQ7wZpGi3NFqZxhzC8-3GHg?e=LLWUZT&download=1"
 mv EZeGsvuqh1dJr0E2Fxf6IKoBQ7wZpGi3NFqZxhzC8-3GHg\?e\=LLWUZT\&download\=1 VGG_Model.zip
 unzip VGG_Model.zip -d ~/video-colorization/Reference/models/

@@ -1,6 +1,10 @@
 # Pycache
 *.pyc
+.*
 
 # Documents
 
 # Other
+dataset
+saved_models
+saved_results

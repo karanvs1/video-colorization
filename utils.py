@@ -7,10 +7,14 @@ from skimage import color
 import torch
 import torch.nn.functional as F
 
-def header(text):
+def header(head):
     print("-"*80)
     print(f"\t\t\t\t{head.upper()}")
     print("-"*80)
+
+
+def verify_config(config):
+	assert config["PreprocessNet"]["context"] == config["Setup"]["context"]
 
 
 def generate_model_name(config):

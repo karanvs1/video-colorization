@@ -3,7 +3,7 @@ import os
 import yaml
 from PIL import Image
 import numpy as np
-from skimage import color
+# from skimage import color
 import torch
 import torch.nn.functional as F
 
@@ -41,8 +41,8 @@ def preprocess_img(img_rgb_orig, HW=(256,256), resample=3):
 
 	tens_orig_l = torch.Tensor(img_l_orig)[None,None,:,:]
 	tens_rs_l = torch.Tensor(img_l_rs)[None,None,:,:]
-	tens_orig_ab = torch.Tensor(img_ab_orig)[None,None,:,:]
-	tens_rs_ab = torch.Tensor(img_ab_rs)[None,None,:,:]
+	tens_orig_ab = torch.Tensor(img_ab_orig)[None,:,:,:]
+	tens_rs_ab = torch.Tensor(img_ab_rs)[None,:,:,:]
 
 	return (tens_orig_l, tens_rs_l, tens_orig_ab, tens_rs_ab)
 

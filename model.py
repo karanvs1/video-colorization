@@ -16,9 +16,12 @@ class PreprocessNetwork(nn.Module):
 
         sim_layers = []
         for _ in range(self.context * 2):
-            sim_layers.append(
-                nn.Conv2d(in_channels=2, out_channels=1, kernel_size=self.config['sim_kernel_size'], stride=1, padding='same', bias=True),
-                )
+            sim_layer = nn.Sequential(nn.Conv2d(2, 64, kernel_size= 3, padding= 1, bias= True),
+                                    nn.ReLU(True),
+                                    nn.Conv2d(64, 1, kernel_size= 1, bias= True),
+                                    nn.Sigmoid())
+            sim_layers.append(sim_layer)                 
+
         self.similarity = nn.ModuleList(sim_layers)
         self.activation = nn.Sigmoid()
         self.mixing = nn.Conv2d(in_channels=2 * self.context + 1, out_channels=1, kernel_size=self.config['mix_kernel_size'],stride=1, padding='same', bias=True)

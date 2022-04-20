@@ -3,7 +3,7 @@ import os
 import yaml
 from PIL import Image
 import numpy as np
-# from skimage import color
+from skimage import color
 import torch
 import torch.nn.functional as F
 

@@ -1,12 +1,13 @@
 experiment: 'example'
 
-### Dataset path
+### Dataset paths
 dataset_path: 'sample dataset'
 dataset_list: 'davis'   # davis, videvo, both (add sample_ for sample dataset)
 
-### Save path
-model_path: 'saved_models'
-pred_dir: 'saved_results'
+### Save paths
+model_dir: 'saved_models'
+model_name: 'sample_name'
+predictions_dir: 'saved_results'
 
 ### Architecture
 PreprocessNet:
@@ -15,12 +16,31 @@ PreprocessNet:
   sim_kernel_size: 3
   mix_kernel_size: 3
 
-### Hyperparameters
+### Dataloader
+Setup:
+  epochs: 1
+  optimizer:
+    # optimizer_name1: 'Adam'
+    lr: 0.001
+    betas: (0.9, 0.999)
+    weight_decay: 0.001
+    eps: 0.0000316
+  scheduler:
+    sched: None
+  loss: 'CrossEntropy'
+
+  context: 3
+  batch_size: 2            
+  shuffle: True
+  num_workers: 4
+  pin_memory: True
+  device: 'cpu'
+
+## Others
 display_step: 2           # Std output update rate during training
 test_step: 20             # Test per n step
 learning_rate: 0.0001     #
 max_step: 1000            # Number of steps to train
-batch_size: 20            #
 first_n_byte: 2000000     # First N bytes of a PE file as the input of MalConv (defualt: 2 million)
 window_size: 500          # Kernel size & stride for Malconv (defualt : 500)
 sample_cnt: 1             # Number of data sampled for trianing (defualt 1 = all)

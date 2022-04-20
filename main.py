@@ -13,8 +13,8 @@ def config_parser():
 
     arg_parser.add_argument("-p", "--process", help="train | test", required=True)
     arg_parser.add_argument("-d", "--dataset", help="Path to dataset", required=True)
-    arg_parser.add_argument("-m", "--model", help="Path to model", required=(True if args.process == "test" else False))
-    arg_parser.add_argument("-c", "--config", help="Path to model configuration", required=(True if args.process == "train" else False))
+    arg_parser.add_argument("-m", "--model", help="Path to model", required= False)#(True if arg.process == "test" else False))
+    arg_parser.add_argument("-c", "--config", help="Path to model configuration", required=True)#(True if args.process == "train" else False))
 
     args = arg_parser.parse_args()
 
@@ -25,13 +25,16 @@ if __name__ == "__main__":
     args = config_parser()
 
     with open(args.config, "r") as f:
-        config = yaml.load(f)
+        config = yaml.safe_load(f)
+
+    verify_config(config)
 
     if args.process == "train":
         header("Training Configuration")
         print(config)
 
-        vcnet = VCNet(config)
+        header("Training")
+        vcnet = VCNetSetup(config)
 
         vcnet.prepare()
         vcnet.train()
@@ -46,3 +49,10 @@ if __name__ == "__main__":
         colorizer.prepare()
         colorizer.test()
         colorizer.save_results()
+    
+    elif args.process == "predict":
+        header("Running prediction")
+        colorizer = VideoColorizer(config)
+
+        colorizer.prepare()
+        colorizer.predict()

@@ -18,3 +18,7 @@ class VideoColorizer:
     def save_results(self):
         # Save results
         pass
+
+    def predict(self):
+        # Single batch prediction
+        pass

@@ -138,7 +138,7 @@ class ECCVGenerator(BaseColor):
 
 if __name__ == "__main__":
 
-    img = load_img(r"sample dataset\DAVIS-gray\cat-girl\00001.jpg")
+    img = load_img(r"sample dataset\DAVIS-gray\car-turn\00017.jpg")
     img = resize_img(img)
     original_l, _ = preprocess_img(img)
 
@@ -146,8 +146,9 @@ if __name__ == "__main__":
     # model.load_state_dict(torch.load(r"colorization_weights.pth"))
     model = VCNet()
     model.eval()
-    out = model(original_l)
+    # out = model(original_l)
 
-    output_image = postprocess_tens(original_l, out)
-    plt.imsave("output.png", output_image)
+    # output_image = postprocess_tens(original_l, out)
+    # print("here")
+    # plt.imsave("car.png", output_image)
     summary(model, (1, 256, 256))

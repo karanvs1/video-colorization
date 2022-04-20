@@ -1,6 +1,11 @@
 # Utility and helper functions
 import os
 import yaml
+from PIL import Image
+import numpy as np
+from skimage import color
+import torch
+import torch.nn.functional as F
 
 def header(text):
     print("-"*80)
@@ -12,13 +17,6 @@ def generate_model_name(config):
     model_name = f"{config['model']}_{config['dataset']}_{config['batch_size']}_{config['lr']}_{config['epochs']}_{config['seed']}"
     return model_name
 
-
-
-from PIL import Image
-import numpy as np
-from skimage import color
-import torch
-import torch.nn.functional as F
 
 def load_img(img_path):
 	out_np = np.asarray(Image.open(img_path))
@@ -60,3 +58,22 @@ def postprocess_tens(tens_orig_l, out_ab, mode='bilinear'):
 
 	out_lab_orig = torch.cat((tens_orig_l, out_ab_orig), dim=1)
 	return color.lab2rgb(out_lab_orig.data.cpu().numpy()[0,...].transpose((1,2,0)))
+
+l_cent = 50.0
+l_norm = 100.0
+ab_norm = 110.0
+
+def normalize_l(in_l):
+    return (in_l - l_cent) / l_norm
+
+
+def unnormalize_l(in_l):
+    return in_l * l_norm + l_cent
+
+
+def normalize_ab(in_ab):
+    return in_ab / ab_norm
+
+
+def unnormalize_ab(in_ab):
+    return in_ab * ab_norm

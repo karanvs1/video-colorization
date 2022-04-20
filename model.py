@@ -1,40 +1,67 @@
 # MODEL Architecture and declaration
+import yaml
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
 
 from torchsummary import summary
+from utils import *
 
 
-class PreprocessNetwork(torch.nn.Module):
+class PreprocessNetwork(nn.Module):
     def __init__(self, config):
-        super().__init__()
+        super(PreprocessNetwork, self).__init__()
         self.config = config
-        context = config.context["context"]
+        self.context = self.config["context"]
 
-    def forward(self, x):
-        pass
+        sim_layers = []
+        for _ in range(self.context * 2):
+            sim_layers.append(
+                nn.Conv2d(in_channels=2, out_channels=1, kernel_size=self.config['sim_kernel_size'], stride=1, padding='same', bias=True),
+                )
+        self.similarity = nn.ModuleList(sim_layers)
+        self.activation = nn.Sigmoid()
+        self.mixing = nn.Conv2d(in_channels=2 * self.context + 1, out_channels=1, kernel_size=self.config['mix_kernel_size'],stride=1, padding='same', bias=True)
 
+        self.initialize_weights()
 
-l_cent = 50.0
-l_norm = 100.0
-ab_norm = 110.0
+    def forward(self, x):   # B x 7 x 256 x 256
+        base_frame = x[:, self.context].unsqueeze(1) # B x 1 x 256 x 256
+        pairwise_processed = []
+        idx = 0
+        for c in range(self.context * 2 + 1):
+            if c != self.context:
+                print("Frame : ", c)
+                check_frame = x[:, c].unsqueeze(1) # B x 1 x 256 x 256
+                if c > self.context:
+                    frame_pair = torch.cat((check_frame , base_frame), dim=1)
+                else:
+                    frame_pair = torch.cat((base_frame, check_frame), dim=1)
+                    
+                processed_frame = self.activation(self.similarity[idx](frame_pair))
 
+                elementwise_frame = processed_frame * check_frame
+                pairwise_processed.append(elementwise_frame)
+                idx += 1
 
-def normalize_l(in_l):
-    return (in_l - l_cent) / l_norm
+        combined_x = torch.cat((
+            *pairwise_processed[:self.context],     # B x 3 x 256 x 256
+            base_frame,                             # B x 1 x 256 x 256
+            *pairwise_processed[self.context:]      # B x 3 x 256 x 256
+            ), dim=1)   # B x 7 x 256 x 256
 
+        processed_x = self.mixing(combined_x)
+        return processed_x
 
-def unnormalize_l(in_l):
-    return in_l * l_norm + l_cent
-
-
-def normalize_ab(in_ab):
-    return in_ab / ab_norm
-
-
-def unnormalize_ab(in_ab):
-    return in_ab * ab_norm
+    def initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+               nn.init.constant_(m.weight, 1)
+               nn.init.constant_(m.bias, 0)
 
 
 class Encoder(nn.Module):
@@ -47,15 +74,14 @@ class Encoder(nn.Module):
         model1 += [nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1, bias=True)]
         model1 += [nn.ReLU(True)]
         model1 += [
-            nn.BatchNorm2d(64),
-        ]
+            nn.BatchNorm2d(64)       ]
 
         model2 = [nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1, bias=True)]
         model2 += [nn.ReLU(True)]
         model2 += [nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1, bias=True)]
         model2 += [nn.ReLU(True)]
         model2 += [
-            nn.BatchNorm2d(128),
+            nn.BatchNorm2d(128)
         ]
 
         model3 = [nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1, bias=True)]
@@ -65,7 +91,7 @@ class Encoder(nn.Module):
         model3 += [nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=1, bias=True)]
         model3 += [nn.ReLU(True)]
         model3 += [
-            nn.BatchNorm2d(256),
+            nn.BatchNorm2d(256)
         ]
 
         model4 = [nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1, bias=True)]
@@ -75,7 +101,7 @@ class Encoder(nn.Module):
         model4 += [nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1, bias=True)]
         model4 += [nn.ReLU(True)]
         model4 += [
-            nn.BatchNorm2d(512),
+            nn.BatchNorm2d(512)
         ]
 
         model5 = [nn.Conv2d(512, 512, kernel_size=3, dilation=2, stride=1, padding=2, bias=True)]
@@ -85,7 +111,7 @@ class Encoder(nn.Module):
         model5 += [nn.Conv2d(512, 512, kernel_size=3, dilation=2, stride=1, padding=2, bias=True)]
         model5 += [nn.ReLU(True)]
         model5 += [
-            nn.BatchNorm2d(512),
+            nn.BatchNorm2d(512)
         ]
 
         self.model1 = nn.Sequential(*model1)
@@ -119,8 +145,7 @@ class Decoder(nn.Module):
         model6 += [nn.Conv2d(512, 512, kernel_size=3, dilation=2, stride=1, padding=2, bias=True)]
         model6 += [nn.ReLU(True)]
         model6 += [
-            nn.BatchNorm2d(512),
-        ]
+            nn.BatchNorm2d(512)        ]
 
         model7 = [nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1, bias=True)]
         model7 += [nn.ReLU(True)]
@@ -129,8 +154,7 @@ class Decoder(nn.Module):
         model7 += [nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1, bias=True)]
         model7 += [nn.ReLU(True)]
         model7 += [
-            nn.BatchNorm2d(512),
-        ]
+            nn.BatchNorm2d(512)        ]
 
         model8 = [nn.ConvTranspose2d(512, 256, kernel_size=4, stride=2, padding=1, bias=True)]
         model8 += [nn.ReLU(True)]
@@ -138,7 +162,6 @@ class Decoder(nn.Module):
         model8 += [nn.ReLU(True)]
         model8 += [nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1, bias=True)]
         model8 += [nn.ReLU(True)]
-
         model8 += [nn.Conv2d(256, 313, kernel_size=1, stride=1, padding=0, bias=True)]
 
         self.model6 = nn.Sequential(*model6)
@@ -179,10 +202,9 @@ class VCLSTM(nn.Module):
 
 class VCNet(nn.Module):
     """_summary_"""
-
-    def __init__(self):
+    def __init__(self, config):
         super(VCNet, self).__init__()
-        # self.preprocess = PreprocessNetwork()
+        self.preprocess = PreprocessNetwork(config["PreprocessNet"])
         self.encoder = Encoder()
         self.encoder = load_colorization_weights(model=self.encoder)
         # self.cnnlstm = VCLSTM()
@@ -190,6 +212,8 @@ class VCNet(nn.Module):
         self.decoder = load_colorization_weights(model=self.decoder)
 
     def forward(self, x):
+        x = self.preprocess(x)
+        print(x.shape)
         x = self.encoder(x)
         x = self.decoder(x)
 
@@ -200,7 +224,7 @@ def load_colorization_weights(model):
     model_dict = model.state_dict()
     try:
         pretrained_dict = torch.load(r"colorization_weights.pth")
-        print(len(list(pretrained_dict.keys())))
+        # print("len dict keys: ", len(list(pretrained_dict.keys())))
     except:
         import torch.utils.model_zoo as model_zoo
 
@@ -222,6 +246,11 @@ def load_colorization_weights(model):
     return model
 
 
-# if __name__ == "__main__":
-#     model = VCNet()
-#     print(summary(model, (1, 256, 256)))
+if __name__ == "__main__":
+    with open('test_config.yaml', "r") as f:
+        config = yaml.safe_load(f)
+    model = VCNet(config)
+    print(summary(model, (7, 256, 256)))
+
+ 
+

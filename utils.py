@@ -21,7 +21,7 @@ def generate_model_name(config):
 def load_img(img_path):
 	out_np = np.asarray(Image.open(img_path))
 	if(out_np.ndim==2):
-		out_np = np.tile(out_np[:,:,None],3)
+		out_np = np.tile(out_np[:,:,None],3) 
 	return out_np
 
 def resize_img(img, HW=(256,256), resample=3):
@@ -36,11 +36,15 @@ def preprocess_img(img_rgb_orig, HW=(256,256), resample=3):
 
 	img_l_orig = img_lab_orig[:,:,0]
 	img_l_rs = img_lab_rs[:,:,0]
+	img_ab_orig = img_lab_orig[:,:,1:]
+	img_ab_rs = img_lab_rs[:,:,1:]
 
 	tens_orig_l = torch.Tensor(img_l_orig)[None,None,:,:]
 	tens_rs_l = torch.Tensor(img_l_rs)[None,None,:,:]
+	tens_orig_ab = torch.Tensor(img_ab_orig)[None,None,:,:]
+	tens_rs_ab = torch.Tensor(img_ab_rs)[None,None,:,:]
 
-	return (tens_orig_l, tens_rs_l)
+	return (tens_orig_l, tens_rs_l, tens_orig_ab, tens_rs_ab)
 
 
 def postprocess_tens(tens_orig_l, out_ab, mode='bilinear'):

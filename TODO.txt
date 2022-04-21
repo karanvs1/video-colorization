@@ -1,5 +1,6 @@
 1) Loss function update- Loss function from CIC with class rebalancing. 
 2) Add CNN-LSTM: Maybe implement using LSTM-cell
 3) Verrify output of trained model
-4) Fix dataloader issue - load frams in inti, not getItems
-5) Add epoch number to training loop
+4) Fix dataloader issue - load frams in init, not getItems
+5) Write script for downloading dataset
+6) Training loop interface improve: Add number of epochs, fix tqdm bar "disappearing" issue

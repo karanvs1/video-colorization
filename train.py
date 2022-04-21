@@ -13,7 +13,7 @@ class VCNetSetup:
     def __init__(self, config):
         self.main_config = config
         self.config = config["Setup"]
-        self.optimizer_params = self.config["optimizer"]
+        self.optimizer_params = self.config["optimizer_params"]
         self.device = self.config["device"]
         self.model_path = os.path.join(config["model_dir"], config["model_name"])
         self._save_params(config["experiment"], config)
@@ -66,16 +66,21 @@ class VCNetSetup:
             gt = gt.to(self.device)
 
             output = self.model(images)
-            print("Output shape: ",output.shape)
-            plt.imshow(images[0][3].detach().numpy())
-            plt.show()
-            plt.imshow(output[0][0].detach().numpy())
-            plt.show()
-            plt.imshow(output[0][1].detach().numpy())
-            plt.show()
-            print("gt shape: ",gt.shape)
+            print("Forward pass done")
+            # output = np.transpose(output,(0,3,2,1))
+            # output = np.transpose(output,(0,1,3,2))
+            # print("Output shape: ",output.shape)
+            # plt.imshow(images[0][3].detach().numpy())
+            # plt.show()
+            # plt.imshow(output[0][0].detach().numpy())
+            # plt.show()
+            # plt.imshow(output[0][1].detach().numpy())
+            # plt.show()
+            # print("gt shape: ",gt.shape)
             loss = self.criterion(output, gt)
+            print("Got loss")
             loss.backward()
+            print("Backward done")
 
             self.optimizer.step()
             total_loss += float(loss.item())
@@ -86,9 +91,9 @@ class VCNetSetup:
                 lr="{:.15f}".format(float(self.optimizer.param_groups[0]['lr']))
                 )
             batch_bar.update() # Update tqdm bar
+            print("something happened")
 
         batch_bar.close() 
-        
         return total_loss
 
     def train(self):  
@@ -109,7 +114,8 @@ class VCNetSetup:
     def prepare(self):
         # Model definition, loss, optimizer, scheduler, etc
         self.model = VCNet(self.main_config).to(self.device)
-        self.criterion = nn.CrossEntropyLoss(reduce=False) #TODO: Change? 
+        # self.criterion = nn.CrossEntropyLoss(reduce=False) #TODO: Change? 
+        self.criterion = nn.MSELoss()
         self.optimizer = optim.Adam(self.model.parameters(), **self.optimizer_params)
         self.scheduler = None
 

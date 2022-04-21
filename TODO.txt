@@ -1,0 +1,2 @@
+1) Loss function update- Loss function from CIC with class rebalancing. 
+2) Add CNN-LSTM: Maybe implement using LSTM-cell

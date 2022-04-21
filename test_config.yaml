@@ -19,13 +19,13 @@ PreprocessNet:
 ### Dataloader
 Setup:
   epochs: 1
-  optimizer:
+  optimizer_params:
     # optimizer_name1: 'Adam'
     lr: 0.001
-    betas: (0.9, 0.999)
+    # betas: (0.9, 0.99)
     weight_decay: 0.001
-    eps: 0.0000316
-  scheduler:
+    eps: 0.00003
+  scheduler_params:
     sched: None
   loss: 'CrossEntropy'
 

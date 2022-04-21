@@ -16,11 +16,12 @@ class PreprocessNetwork(nn.Module):
 
         sim_layers = []
         for _ in range(self.context * 2):
-            sim_layer = nn.Sequential(nn.Conv2d(2, 64, kernel_size= 3, padding= 1, bias= True),
-                                    nn.ReLU(True),
-                                    nn.Conv2d(64, 1, kernel_size= 1, bias= True),
-                                    nn.Sigmoid())
-            sim_layers.append(sim_layer)                 
+            layer = nn.Sequential(
+                nn.Conv2d(2, 64, kernel_size= 3, padding= 1, bias=True),
+                nn.ReLU(),
+                nn.Conv2d(64, 1, kernel_size= 1, bias=True),
+                nn.Sigmoid())
+            sim_layers.append(layer)                 
 
         self.similarity = nn.ModuleList(sim_layers)
         self.activation = nn.Sigmoid()
@@ -34,7 +35,7 @@ class PreprocessNetwork(nn.Module):
         idx = 0
         for c in range(self.context * 2 + 1):
             if c != self.context:
-                print("Frame : ", c)
+                # print("Frame : ", c)
                 check_frame = x[:, c].unsqueeze(1) # B x 1 x 256 x 256
                 if c > self.context:
                     frame_pair = torch.cat((check_frame , base_frame), dim=1)
@@ -216,7 +217,6 @@ class VCNet(nn.Module):
 
     def forward(self, x):
         x = self.preprocess(x)
-        print(x.shape)
         x = self.encoder(x)
         x = self.decoder(x)
 

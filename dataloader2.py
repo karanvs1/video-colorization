@@ -20,12 +20,18 @@ class VCSamples(Dataset):
     def __getitem__(self, index):
         images = []
         for i in range(index, index + self.n_frames):
-            _,img_rs_L,_,img_rs_ab = preprocess_img(load_img(os.path.join(self.data_path,'DAVIS', self.frame_list[i]).replace('\\', '/')))
+            _,img_rs_L,_, img_rs_ab = preprocess_img(load_img(os.path.join(self.data_path,'DAVIS', self.frame_list[i]).replace('\\', '/')))
             images.append(img_rs_L)
             if i == index + self.n_frames//2:
                 img_rs_ab_center = img_rs_ab
         img_rs_L = torch.stack(images, 0)
-        return img_rs_L.squeeze(), img_rs_ab_center.squeeze()
+        img_rs_L = img_rs_L.squeeze()
+        img_rs_ab_center = img_rs_ab_center.squeeze()
+        # print("Data", img_rs_L.shape, img_rs_ab_center.shape)
+        img_rs_ab_center = torch.transpose(img_rs_ab_center, 0, 2)
+        img_rs_ab_center = torch.transpose(img_rs_ab_center, 1, 2)
+        # print("After Transpose", img_rs_L.shape, img_rs_ab_center.shape)
+        return img_rs_L, img_rs_ab_center
 
 
 class VCSamples_Test(Dataset):

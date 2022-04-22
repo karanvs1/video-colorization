@@ -85,7 +85,7 @@ class VCNetSetup:
                 loss="{:.04f}".format(float(total_loss / (i + 1))), lr="{:.15f}".format(float(self.optimizer.param_groups[0]["lr"]))
             )
             batch_bar.update()  # Update tqdm bar
-            print("something happened")
+            # print("something happened")
 
         batch_bar.close()
         return total_loss
@@ -98,6 +98,11 @@ class VCNetSetup:
         for epoch in range(self.config["epochs"]):
             train_loss = self._training_loop(train_loader)
             self._save_checkpoint(epoch, self.model, self.optimizer, train_loss)
+            print("Epoch {}/{}: Train Loss {:.04f}, Learning Rate {:.04f}".format(
+            epoch + 1,
+            self.config["epochs"],
+            float(train_loss / len(train_loader)),
+            float(self.optimizer.param_groups[0]['lr'])))
         print("\nTraining Complete")
 
     def prepare(self):

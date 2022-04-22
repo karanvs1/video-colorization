@@ -17,42 +17,45 @@ class PreprocessNetwork(nn.Module):
         sim_layers = []
         for _ in range(self.context * 2):
             layer = nn.Sequential(
-                nn.Conv2d(2, 64, kernel_size= 3, padding= 1, bias=True),
-                nn.ReLU(),
-                nn.Conv2d(64, 1, kernel_size= 1, bias=True),
-                nn.Sigmoid())
-            sim_layers.append(layer)                 
+                nn.Conv2d(2, 64, kernel_size=3, padding=1, bias=True), nn.ReLU(), nn.Conv2d(64, 1, kernel_size=1, bias=True), nn.Sigmoid()
+            )
+            sim_layers.append(layer)
 
         self.similarity = nn.ModuleList(sim_layers)
         self.activation = nn.Sigmoid()
-        self.mixing = nn.Conv2d(in_channels=2 * self.context + 1, out_channels=1, kernel_size=self.config['mix_kernel_size'],stride=1, padding='same', bias=True)
+        self.mixing = nn.Conv2d(
+            in_channels=2 * self.context + 1,
+            out_channels=1,
+            kernel_size=self.config["mix_kernel_size"],
+            stride=1,
+            padding="same",
+            bias=True,
+        )
 
         self.initialize_weights()
 
-    def forward(self, x):   # B x 7 x 256 x 256
-        base_frame = x[:, self.context].unsqueeze(1) # B x 1 x 256 x 256
+    def forward(self, x):  # B x 7 x 256 x 256
+        base_frame = x[:, self.context].unsqueeze(1)  # B x 1 x 256 x 256
         pairwise_processed = []
         idx = 0
         for c in range(self.context * 2 + 1):
             if c != self.context:
                 # print("Frame : ", c)
-                check_frame = x[:, c].unsqueeze(1) # B x 1 x 256 x 256
+                check_frame = x[:, c].unsqueeze(1)  # B x 1 x 256 x 256
                 if c > self.context:
-                    frame_pair = torch.cat((check_frame , base_frame), dim=1)
+                    frame_pair = torch.cat((check_frame, base_frame), dim=1)
                 else:
                     frame_pair = torch.cat((base_frame, check_frame), dim=1)
-                    
+
                 processed_frame = self.activation(self.similarity[idx](frame_pair))
 
                 elementwise_frame = processed_frame * check_frame
                 pairwise_processed.append(elementwise_frame)
                 idx += 1
 
-        combined_x = torch.cat((
-            *pairwise_processed[:self.context],     # B x 3 x 256 x 256
-            base_frame,                             # B x 1 x 256 x 256
-            *pairwise_processed[self.context:]      # B x 3 x 256 x 256
-            ), dim=1)   # B x 7 x 256 x 256
+        combined_x = torch.cat(
+            (*pairwise_processed[: self.context], base_frame, *pairwise_processed[self.context :]), dim=1
+        )  # B x 7 x 256 x 256
 
         processed_x = self.mixing(combined_x)
         return processed_x
@@ -64,8 +67,8 @@ class PreprocessNetwork(nn.Module):
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.BatchNorm2d):
-               nn.init.constant_(m.weight, 1)
-               nn.init.constant_(m.bias, 0)
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
 
 
 class Encoder(nn.Module):
@@ -77,16 +80,13 @@ class Encoder(nn.Module):
         model1 += [nn.ReLU(True)]
         model1 += [nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1, bias=True)]
         model1 += [nn.ReLU(True)]
-        model1 += [
-            nn.BatchNorm2d(64)       ]
+        model1 += [nn.BatchNorm2d(64)]
 
         model2 = [nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1, bias=True)]
         model2 += [nn.ReLU(True)]
         model2 += [nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1, bias=True)]
         model2 += [nn.ReLU(True)]
-        model2 += [
-            nn.BatchNorm2d(128)
-        ]
+        model2 += [nn.BatchNorm2d(128)]
 
         model3 = [nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1, bias=True)]
         model3 += [nn.ReLU(True)]
@@ -94,9 +94,7 @@ class Encoder(nn.Module):
         model3 += [nn.ReLU(True)]
         model3 += [nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=1, bias=True)]
         model3 += [nn.ReLU(True)]
-        model3 += [
-            nn.BatchNorm2d(256)
-        ]
+        model3 += [nn.BatchNorm2d(256)]
 
         model4 = [nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1, bias=True)]
         model4 += [nn.ReLU(True)]
@@ -104,9 +102,7 @@ class Encoder(nn.Module):
         model4 += [nn.ReLU(True)]
         model4 += [nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1, bias=True)]
         model4 += [nn.ReLU(True)]
-        model4 += [
-            nn.BatchNorm2d(512)
-        ]
+        model4 += [nn.BatchNorm2d(512)]
 
         model5 = [nn.Conv2d(512, 512, kernel_size=3, dilation=2, stride=1, padding=2, bias=True)]
         model5 += [nn.ReLU(True)]
@@ -114,9 +110,7 @@ class Encoder(nn.Module):
         model5 += [nn.ReLU(True)]
         model5 += [nn.Conv2d(512, 512, kernel_size=3, dilation=2, stride=1, padding=2, bias=True)]
         model5 += [nn.ReLU(True)]
-        model5 += [
-            nn.BatchNorm2d(512)
-        ]
+        model5 += [nn.BatchNorm2d(512)]
 
         self.model1 = nn.Sequential(*model1)
         self.model2 = nn.Sequential(*model2)
@@ -148,8 +142,7 @@ class Decoder(nn.Module):
         model6 += [nn.ReLU(True)]
         model6 += [nn.Conv2d(512, 512, kernel_size=3, dilation=2, stride=1, padding=2, bias=True)]
         model6 += [nn.ReLU(True)]
-        model6 += [
-            nn.BatchNorm2d(512)        ]
+        model6 += [nn.BatchNorm2d(512)]
 
         model7 = [nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1, bias=True)]
         model7 += [nn.ReLU(True)]
@@ -157,8 +150,7 @@ class Decoder(nn.Module):
         model7 += [nn.ReLU(True)]
         model7 += [nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1, bias=True)]
         model7 += [nn.ReLU(True)]
-        model7 += [
-            nn.BatchNorm2d(512)        ]
+        model7 += [nn.BatchNorm2d(512)]
 
         model8 = [nn.ConvTranspose2d(512, 256, kernel_size=4, stride=2, padding=1, bias=True)]
         model8 += [nn.ReLU(True)]
@@ -206,6 +198,7 @@ class VCLSTM(nn.Module):
 
 class VCNet(nn.Module):
     """_summary_"""
+
     def __init__(self, config):
         super(VCNet, self).__init__()
         self.preprocess = PreprocessNetwork(config["PreprocessNet"])
@@ -250,10 +243,7 @@ def load_colorization_weights(model):
 
 
 if __name__ == "__main__":
-    with open('test_config.yaml', "r") as f:
+    with open("test_config.yaml", "r") as f:
         config = yaml.safe_load(f)
     model = VCNet(config)
     print(summary(model, (7, 256, 256)))
-
- 
-

@@ -2,7 +2,7 @@ import os
 import numpy as np
 
 data_path = r"sample dataset"  # sample
-# data_path = r"dataset\dataset\DAVIS_videvo_train"  # main dataset
+# data_path = r"dataset"  # main dataset
 
 
 davis_rgb = os.listdir(os.path.join(data_path, "DAVIS"))
@@ -27,10 +27,10 @@ with open("sample_davis_train.txt", "w") as dav:
 #         for f in os.listdir(os.path.join(data_path, "DAVIS", video)):
 #             combined.append(os.path.join(video, f))
 
-    # for video in videvo_rgb:
-    #     for f in os.listdir(os.path.join(data_path, "videvo", video)):
-    #         combined.append(os.path.join(video, f))
+# for video in videvo_rgb:
+#     for f in os.listdir(os.path.join(data_path, "videvo", video)):
+#         combined.append(os.path.join(video, f))
 
-    # combined.sort()
-    # for i in combined:
-    #     both.write(i + "\n")
+# combined.sort()
+# for i in combined:
+#     both.write(i + "\n")

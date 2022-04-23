@@ -15,7 +15,7 @@ def header(head):
 
 
 def verify_config(config):
-    assert config["PreprocessNet"]["context"] == config["Setup"]["context"]
+    assert config["Encoder"]["context"] == config["Setup"]["context"]
 
 
 def generate_model_name(config):

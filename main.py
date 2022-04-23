@@ -12,7 +12,6 @@ def config_parser():
     arg_parser = argparse.ArgumentParser(description="A simple script to convert a .csv file to a .json file.")
 
     arg_parser.add_argument("-p", "--process", help="train | test", required=True)
-    arg_parser.add_argument("-d", "--dataset", help="Path to dataset", required=True)
     arg_parser.add_argument("-m", "--model", help="Path to model", required=False)  # (True if arg.process == "test" else False))
     arg_parser.add_argument(
         "-c", "--config", help="Path to model configuration", required=True
@@ -21,6 +20,13 @@ def config_parser():
     args = arg_parser.parse_args()
 
     return args
+
+
+"""
+Sample Run commands
+Training : python main.py -p train -m 'saved_models/' -c 'test_config.yaml'
+
+"""
 
 
 if __name__ == "__main__":

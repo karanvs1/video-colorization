@@ -28,8 +28,7 @@
 
 ## Tasks:
 ### (in chronological order, no. of * indicates priority)
-1. Improve Training loop interface - Arj*
-2. Write script for downloading complete dataset to AWS - C*
+
 3. Modify network to run just CIC based frame wise colorization (Share script with Aparajith) - K/K**
 4. Change preprocessing network to pass into the conv1 layer and freeze weights from conv2 onwards - K/K**
 5. Make separate branches

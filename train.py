@@ -1,7 +1,7 @@
 # Training Class
 from model import *
 from utils import *
-from dataloader2 import VCSamples
+from dataloader import VCSamples
 import matplotlib.pyplot as plt
 
 import torch.optim as optim
@@ -63,7 +63,7 @@ class VCNetSetup:
             images = images.to(self.device, non_blocking=True)
             gt = gt.to(self.device, non_blocking=True)
 
-            output = self.model(images)
+            output = self.model(images, self.config["model_mode"])
             # output = np.transpose(output,(0,3,2,1))
             # output = np.transpose(output,(0,1,3,2))
             # print("Output shape: ",output.shape)
@@ -80,29 +80,27 @@ class VCNetSetup:
             self.optimizer.step()
             total_loss += float(loss.item())
 
-            # monitor training
             batch_bar.set_postfix(
                 loss="{:.04f}".format(float(total_loss / (i + 1))), lr="{:.15f}".format(float(self.optimizer.param_groups[0]["lr"]))
             )
-            batch_bar.update()  # Update tqdm bar
-            # print("something happened")
+            batch_bar.update()
 
         batch_bar.close()
         return total_loss
 
     def train(self):
         # Main training loop (epochs)
-        train_dataset = VCSamples(self.config["context"])
+        train_dataset = VCSamples(self.main_config["dataset_path"], self.config["context"])
         train_loader = DataLoader(train_dataset, batch_size=self.config["batch_size"], shuffle=True, num_workers=self.config["num_workers"])
 
         for epoch in range(self.config["epochs"]):
             train_loss = self._training_loop(train_loader)
             self._save_checkpoint(epoch, self.model, self.optimizer, train_loss)
-            print("Epoch {}/{}: Train Loss {:.04f}, Learning Rate {:.04f}".format(
-            epoch + 1,
-            self.config["epochs"],
-            float(train_loss / len(train_loader)),
-            float(self.optimizer.param_groups[0]['lr'])))
+            print(
+                "Epoch {}/{}: Train Loss {:.04f}, Learning Rate {:.04f}".format(
+                    epoch + 1, self.config["epochs"], float(train_loss / len(train_loader)), float(self.optimizer.param_groups[0]["lr"])
+                )
+            )
         print("\nTraining Complete")
 
     def prepare(self):
@@ -110,6 +108,15 @@ class VCNetSetup:
 
         # * Model
         self.model = VCNet(self.main_config).to(self.device)
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        for param in self.model.encoder.preprocess.parameters():
+            param.requires_grad = True
+
+        for param in self.model.encoder.model1.parameters():
+            param.requires_grad = True
 
         # * Loss
         # self.criterion = nn.CrossEntropyLoss(reduce=False) #TODO: Change?

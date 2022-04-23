@@ -1,107 +1,73 @@
-# DAVIS and Videvo Dataloader
-import cv2 as cv
+import os
+from matplotlib import lines
+from utils import *
 from torch.utils.data import Dataset
+import matplotlib.pyplot as plt
 
 
 class VCSamples(Dataset):
-    def __init__(self, config):
-        self.dataset_path = config["dataset_path"]
-        self.frame_list = os.path.join(self.dataset_path, config["dataset_list"] + "_train.txt")
-
-    def __getitem__(self, index):
-        imgpath = self.frame_list[index]  # Path of one image
-        # Read the images
-        img = cv2.imread(imgpath)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # RGB image
-
-        grayimg = img[:, :, [0]] * 0.299 + img[:, :, [1]] * 0.587 + img[:, :, [2]] * 0.114
-        grayimg = np.concatenate((grayimg, grayimg, grayimg), axis=2)
-        # Data augmentation
-        grayimg = self.img_aug(grayimg)
-        img = self.img_aug(img)
-        # Normalized to [-1, 1]
-        grayimg = np.ascontiguousarray(grayimg, dtype=np.float32)
-        grayimg = (grayimg - 128) / 128
-        img = np.ascontiguousarray(img, dtype=np.float32)
-        img = (img - 128) / 128
-        # To PyTorch Tensor
-        grayimg = torch.from_numpy(grayimg).permute(2, 0, 1).contiguous()
-        img = torch.from_numpy(img).permute(2, 0, 1).contiguous()
-        return grayimg, img
+    def __init__(self, data_path, context):
+        self.frame_list = os.path.join(data_path, "sample_davis_train.txt")
+        self.file = open(self.frame_list, "r")
+        self.lines = self.file.read()
+        self.frame_list = self.lines.split("\n")
+        self.context = context
+        self.n_frames = self.context * 2 + 1
 
     def __len__(self):
-        return len(self.frame_list)
+        return len(self.frame_list) - 2 * self.context
 
-    def collate_fn(self, batch):
-        pass
+    def __getitem__(self, index):
+        images = []
+        for i in range(index, index + self.n_frames):
+            _, img_rs_L, _, img_rs_ab = preprocess_img(
+                load_img(os.path.join(self.data_path, "DAVIS", self.frame_list[i]).replace("\\", "/"))
+            )
+            images.append(img_rs_L)
+            if i == index + self.n_frames // 2:
+                img_rs_ab_center = img_rs_ab
+        img_rs_L = torch.stack(images, 0)
+        img_rs_L = img_rs_L.squeeze()
+        img_rs_ab_center = img_rs_ab_center.squeeze()
+        # print("Data", img_rs_L.shape, img_rs_ab_center.shape)
+        img_rs_ab_center = torch.transpose(img_rs_ab_center, 0, 2)
+        img_rs_ab_center = torch.transpose(img_rs_ab_center, 1, 2)
+        # print("After Transpose", img_rs_L.shape, img_rs_ab_center.shape)
+        return img_rs_L, img_rs_ab_center
 
 
-class ColorizationDataset(Dataset):
-    def __init__(self, opt):
-        # Note that:
-        # 1. opt: all the options
-        # 2. imglist: all the image names under "baseroot"
-        self.opt = opt
-        self.imglist = self.get_files(opt.baseroot)
+class VCSamples_Test(Dataset):
+    def __init__(self, context):
+        self.data_path = "sample dataset"
+        self.frame_list = os.path.join(self.data_path, "sample_davis_train.txt")
+        self.file = open(self.frame_list, "r")
+        self.lines = self.file.read()
+        self.frame_list = self.lines.split("\n")
+        self.context = context
+        self.n_frames = self.context * 2 + 1
 
-    def get_files(self, path):
-        # Read a folder, return the complete path
-        ret = []
-        for root, dirs, files in os.walk(path):
-            for filespath in files:
-                ret.append(os.path.join(root, filespath))
-        # Randomly sample the target slice
-        sample_size = int(math.floor(len(ret) / self.opt.sample_size))
-        ret = random.sample(ret, sample_size)
-        # Re-arrange the list that meets multiplier of batchsize
-        adaptive_len = int(math.floor(len(ret) / self.opt.batch_size) * self.opt.batch_size)
-        ret = ret[:adaptive_len]
-        return ret
+    def __len__(self):
+        return len(self.frame_list) - 2 * self.context
 
-    def img_aug(self, img):
-        # Random scale
-        """
-        if self.opt.geometry_aug:
-            H_in = img.shape[0]
-            W_in = img.shape[1]
-            sc = np.random.uniform(self.opt.scale_min, self.opt.scale_max)
-            H_out = int(math.floor(H_in * sc))
-            W_out = int(math.floor(W_in * sc))
-            # scaled size should be greater than opts.crop_size and remain the ratio of H to W
-            if H_out < W_out:
-                if H_out < self.opt.crop_size:
-                    H_out = self.opt.crop_size
-                    W_out = int(math.floor(W_in * float(H_out) / float(H_in)))
-            else: # W_out < H_out
-                if W_out < self.opt.crop_size:
-                    W_out = self.opt.crop_size
-                    H_out = int(math.floor(H_in * float(W_out) / float(W_in)))
-            img = cv2.resize(img, (W_out, H_out))
-        """
-        if self.opt.geometry_aug:
-            H_in = img.shape[0]
-            W_in = img.shape[1]
-            if H_in < W_in:
-                H_out = self.opt.crop_size
-                W_out = int(math.floor(W_in * float(H_out) / float(H_in)))
-            else:  # W_in < H_in
-                W_out = self.opt.crop_size
-                H_out = int(math.floor(H_in * float(W_out) / float(W_in)))
-            img = cv2.resize(img, (W_out, H_out))
-        else:
-            img = cv2.resize(img, (self.opt.crop_size, self.opt.crop_size))
-        # Random crop
-        cropper = RandomCrop(img.shape[:2], (self.opt.crop_size, self.opt.crop_size))
-        img = cropper(img)
-        """
-        # Random rotate
-        if self.opt.angle_aug:
-            # Rotate
-            rotate = random.randint(0, 3)
-            if rotate != 0:
-                img = np.rot90(img, rotate)
-            # Horizontal flip
-            if np.random.random() >= 0.5:
-                img = cv2.flip(img, flipCode = 1)
-        """
-        return img
+    def __getitem__(self, index):
+        images = []
+        for i in range(index, index + self.n_frames):
+            _, img_rs_L, _, _ = preprocess_img(load_img(os.path.join(self.data_path, "DAVIS", self.frame_list[i]).replace("\\", "/")))
+            # img_rs_L = torch.tensor(plt.imread(os.path.join(self.data_path,'DAVIS', self.frame_list[i]).replace('\\', '/')))
+            images.append(img_rs_L)
+        img_rs_L = torch.stack(images, 0)
+        return img_rs_L.squeeze()
+
+
+if __name__ == "__main__":
+    with open("test_config.yaml", "r") as f:
+        config = yaml.safe_load(f)
+    test_dataset = VCSamples_Test(config["PreprocessNet"]["context"])
+    test_loader = torch.utils.data.DataLoader(test_dataset, **config["Setup"]["train_dataloader"])
+    print(len(test_loader))
+    for i, img in enumerate(test_loader):
+        print(img.shape)
+        plt.imshow(img[0][0].numpy())
+        plt.show()
+        if i == 1:
+            break

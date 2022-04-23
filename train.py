@@ -81,7 +81,7 @@ class VCNetSetup:
             total_loss += float(loss.item())
 
             batch_bar.set_postfix(
-                loss="{:.04f}".format(float(total_loss / (i + 1))), lr="{:.15f}".format(float(self.optimizer.param_groups[0]["lr"]))
+                loss="{:.04f}".format(float(total_loss / (i + 1))), lr="{:.06f}".format(float(self.optimizer.param_groups[0]["lr"]))
             )
             batch_bar.update()
 
@@ -91,9 +91,12 @@ class VCNetSetup:
     def train(self):
         # Main training loop (epochs)
         train_dataset = VCSamples(self.main_config["dataset_path"], self.config["context"])
-        train_loader = DataLoader(train_dataset, batch_size=self.config["batch_size"], shuffle=True, num_workers=self.config["num_workers"])
+        train_loader = DataLoader(
+            train_dataset, batch_size=self.config["batch_size"], shuffle=self.config["shuffle"], num_workers=self.config["num_workers"]
+        )
 
         for epoch in range(self.config["epochs"]):
+            print("\n" + "-" * 20 + " Epoch " + str(epoch) + " " + "-" * 20)
             train_loss = self._training_loop(train_loader)
             self._save_checkpoint(epoch, self.model, self.optimizer, train_loss)
             print(
@@ -109,6 +112,7 @@ class VCNetSetup:
         # * Model
         self.model = VCNet(self.main_config).to(self.device)
 
+        print("Freezing CIC Weights")
         for param in self.model.parameters():
             param.requires_grad = False
 

@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 
 class VCSamples(Dataset):
     def __init__(self, data_path, context):
+        self.data_path = data_path
         self.frame_list = os.path.join(data_path, "sample_davis_train.txt")
         self.file = open(self.frame_list, "r")
         self.lines = self.file.read()
@@ -29,6 +30,7 @@ class VCSamples(Dataset):
         img_rs_L = torch.stack(images, 0)
         img_rs_L = img_rs_L.squeeze()
         img_rs_ab_center = img_rs_ab_center.squeeze()
+
         # print("Data", img_rs_L.shape, img_rs_ab_center.shape)
         img_rs_ab_center = torch.transpose(img_rs_ab_center, 0, 2)
         img_rs_ab_center = torch.transpose(img_rs_ab_center, 1, 2)
@@ -37,9 +39,9 @@ class VCSamples(Dataset):
 
 
 class VCSamples_Test(Dataset):
-    def __init__(self, context):
-        self.data_path = "sample dataset"
-        self.frame_list = os.path.join(self.data_path, "sample_davis_train.txt")
+    def __init__(self, data_path, context):
+        self.data_path = data_path
+        self.frame_list = os.path.join(data_path, "sample_davis_train.txt")
         self.file = open(self.frame_list, "r")
         self.lines = self.file.read()
         self.frame_list = self.lines.split("\n")
@@ -62,8 +64,14 @@ class VCSamples_Test(Dataset):
 if __name__ == "__main__":
     with open("test_config.yaml", "r") as f:
         config = yaml.safe_load(f)
-    test_dataset = VCSamples_Test(config["PreprocessNet"]["context"])
-    test_loader = torch.utils.data.DataLoader(test_dataset, **config["Setup"]["train_dataloader"])
+
+    test_dataset = VCSamples_Test(config["dataset_path"], config["Setup"]["context"])
+    test_loader = torch.utils.data.DataLoader(
+        test_dataset,
+        batch_size=config["Setup"]["batch_size"],
+        shuffle=config["Setup"]["shuffle"],
+        num_workers=config["Setup"]["num_workers"],
+    )
     print(len(test_loader))
     for i, img in enumerate(test_loader):
         print(img.shape)

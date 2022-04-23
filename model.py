@@ -78,9 +78,9 @@ class Encoder(nn.Module):
         self.preprocess = PreprocessNetwork(config)
 
         pre_model1 = [
-            nn.Conv2d(self.context * 2 + 1, 64, kernel_size=3, padding=1, bias=True),
+            nn.Conv2d(self.context * 2 + 1, 64, kernel_size=3, stride=1, padding=1, bias=True),
             nn.ReLU(True),
-            nn.Conv2d(64, 64, kernel_size=3, padding=1, bias=True),
+            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1, bias=True),
             nn.ReLU(True),
             nn.BatchNorm2d(64),
         ]
@@ -230,7 +230,7 @@ class VCNet(nn.Module):
 def load_colorization_weights(model):
     model_dict = model.state_dict()
     try:
-        pretrained_dict = torch.load(r"colorization_weights.pth")
+        pretrained_dict = torch.load(r"./colorization_weights.pth")
         # print("len dict keys: ", len(list(pretrained_dict.keys())))
     except:
         import torch.utils.model_zoo as model_zoo

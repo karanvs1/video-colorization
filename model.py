@@ -1,4 +1,5 @@
 # MODEL Architecture and declaration
+from distutils.command.config import config
 import yaml
 import torch
 import torch.nn.functional as F
@@ -131,12 +132,17 @@ class Encoder(nn.Module):
         self.model5 = nn.Sequential(*model5)
 
     def forward(self, x, mode):
+        # print(header(mode))
         x = normalize_l(x)
         if mode == "cic":
+            # print(x.shape)
             assert x.size(1) == 1, "Should be a single grayscale frame"
             x = self.model1(x)
         elif mode == "context" or mode == "attention":
+            
+            x = x.squeeze(0)
             assert x.size(1) > 1, "Should be a set of grayscale frames"
+            # print(header(mode))
             x = self.preprocess(x, mode)
             x = self.pre_model1(x)
 
@@ -188,12 +194,13 @@ class Decoder(nn.Module):
         x = self.model6(x)
         x = self.model7(x)
         x = self.model8(x)
-        x = self.softmax(x)
-        outlab = self.model_out(x)
+        probs = self.softmax(x)
+        # outlab = x
+        outlab = self.model_out(probs)
         outlab = self.upsample4(outlab)
         outlab = unnormalize_ab(outlab)
 
-        return outlab
+        return outlab, probs
 
 
 class VCLSTM(nn.Module):
@@ -212,16 +219,20 @@ class VCLSTM(nn.Module):
 class VCNet(nn.Module):
     """_summary_"""
 
-    def __init__(self, config):
+    def __init__(self, config, run_mode='train'):
+        self.mode = config["Setup"]["model_mode"]
+        print("Model MODE: ", self.mode)
         super(VCNet, self).__init__()
         self.encoder = Encoder(config["Encoder"])
-        self.encoder = load_colorization_weights(model=self.encoder)
+        if run_mode == 'train':
+            self.encoder = load_colorization_weights(model=self.encoder)
         # self.cnnlstm = VCLSTM()
         self.decoder = Decoder()
-        self.decoder = load_colorization_weights(model=self.decoder)
+        if run_mode == 'train':
+            self.decoder = load_colorization_weights(model=self.decoder)
 
-    def forward(self, x, mode="attention"):
-        x = self.encoder(x, mode)
+    def forward(self, x, mode='context'):
+        x = self.encoder(x, self.mode)
         x = self.decoder(x)
 
         return x
@@ -231,10 +242,10 @@ def load_colorization_weights(model):
     model_dict = model.state_dict()
     try:
         pretrained_dict = torch.load(r"./colorization_weights.pth")
+        print("Loaded pretrained weights")
         # print("len dict keys: ", len(list(pretrained_dict.keys())))
     except:
         import torch.utils.model_zoo as model_zoo
-
         model.load_state_dict(
             model_zoo.load_url(
                 "https://colorizers.s3.us-east-2.amazonaws.com/colorization_release_v2-9b330a0b.pth",
@@ -250,6 +261,7 @@ def load_colorization_weights(model):
     model_dict.update(pretrained_dict)
     model.load_state_dict(model_dict)
 
+
     return model
 
 
@@ -258,5 +270,26 @@ if __name__ == "__main__":
         config = yaml.safe_load(f)
     for k, v in config.items():
         print(f"{k}: {v}")
-    model = VCNet(config)
-    summary(model, (3, 256, 256))
+    model = VCNet(config).to(config['Setup']["device"])
+
+    for param in model.parameters():
+        param.requires_grad = False
+
+    for param in model.encoder.preprocess.parameters():
+        param.requires_grad = True
+
+    for param in model.encoder.model1.parameters():
+        param.requires_grad = True
+    
+    for param in model.encoder.pre_model1.parameters():
+        param.requires_grad = True
+
+    # summary(model, torch.zeros((2, 9, 256, 256)).cuda())
+
+    for name, param in model.named_parameters():
+        if param.requires_grad == True:
+            print(name)
+
+    summary(model, (7, 256, 256))
+
+

@@ -1,12 +1,12 @@
-experiment: 'context_initial'
+experiment: 'attention_davis'
 
 ### Dataset paths
-dataset_path: 'sample_dataset'    # sample_dataset, actual_dataset
+dataset_path: 'actual_dataset'    # sample_dataset, actual_dataset
 dataset_list: 'davis'             # davis, videvo, both (add sample_ for sample dataset)
 
 ### Save paths
 model_dir: 'saved_models'
-model_name: 'context'
+model_name: 'attention_davis'
 predictions_dir: 'saved_results'
 
 ### Architecture
@@ -18,25 +18,28 @@ Encoder:
 
 ### Dataloader
 Setup:
-  epochs: 10
+  epochs: 75
+  scheduler: None
+  # scheduler_params:
+    # patience:
+  optimizer: 'Adam'
   optimizer_params:
-    # optimizer_name1: 'Adam'
     lr: 0.001
     # betas: (0.9, 0.99)
     weight_decay: 0.001
     eps: 0.00003
-  scheduler_params:
-    sched: None
+
   loss: 'MSE'
 
   model_mode: 'attention'       # cic/ context/ attention
   freeze_cic: True
-  context: 3
-  batch_size: 1   
-  shuffle: True
-  num_workers: 4
-  pin_memory: True
-  device: 'cuda'
 
-## Output
-output_location: 'colorized_video'
+  context: 3
+  batch_size: 16
+  dataloader_params:
+    shuffle: True
+    num_workers: 4
+    pin_memory: True
+
+  device: 'cuda'
+  wandb_log: True

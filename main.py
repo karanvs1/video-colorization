@@ -13,9 +13,7 @@ def config_parser():
 
     arg_parser.add_argument("-p", "--process", help="train | test", required=True)
     arg_parser.add_argument("-m", "--model", help="Path to model", required=False)  # (True if arg.process == "test" else False))
-    arg_parser.add_argument(
-        "-c", "--config", help="Path to model configuration", required=True
-    )  # (True if args.process == "train" else False))
+    arg_parser.add_argument("-c", "--config", help="Path to configuration", required=True)  # (True if args.process == "train" else False))
 
     args = arg_parser.parse_args()
 
@@ -24,7 +22,8 @@ def config_parser():
 
 """
 Sample Run commands
-Training : python main.py -p train -m 'saved_models/' -c 'test_config.yaml'
+Training : python3 main.py -p train -c 'test_config.yaml'
+Testing : python3 main.py -p test -m 'saved_models/<model_name>' -c 'inference_config.yaml'
 
 """
 

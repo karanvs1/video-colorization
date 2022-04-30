@@ -24,6 +24,11 @@ class VCNetSetup:
         self.model_path = os.path.join(config["model_dir"], config["model_name"])
         self._save_params(config["experiment"], config)
 
+        try:
+            os.mkdir("saved_models")
+        except:
+            print("saved_models already exists!")
+
 
     def _save_params(self, experiment_name, metadata):
         try:
@@ -63,7 +68,7 @@ class VCNetSetup:
         # Dataloader loop (batches)
         total_loss = 0
         batch_bar = tqdm(total=len(train_loader), dynamic_ncols=True, leave=False, position=0, desc="Train")
-
+        torch.cuda.empty_cache()
         for i, (images, gt) in enumerate(train_loader):
             self.model.train()
             self.optimizer.zero_grad(set_to_none=True)
@@ -86,7 +91,7 @@ class VCNetSetup:
 
             total_loss += float(loss.item())
             batch_bar.set_postfix(
-                loss="{:.04f}".format(float(total_loss / (i + 1))), lr="{:.15f}".format(float(self.optimizer.param_groups[0]["lr"]))
+                loss="{:.04f}".format(float(total_loss / (i + 1))), lr="{:.04f}".format(float(self.optimizer.param_groups[0]["lr"]))
             )
             batch_bar.update()
         batch_bar.close()
@@ -98,7 +103,7 @@ class VCNetSetup:
         delta_time = datetime.timedelta(seconds = 0)
         
         if self.config["wandb_log"]:
-            wandb.init(project="video-colorization", entity="karanvs1", config=self.main_config)
+            wandb.init(project="test-project", entity="acvc", config=self.main_config)
             wandb.watch(self.model, criterion=self.criterion, log="all", log_freq=self.config["batch_size"], idx=None)
 
         for epoch in range(epochs):

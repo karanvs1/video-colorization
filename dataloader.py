@@ -67,21 +67,21 @@ class VCSamples_Test(Dataset):
 
 
 
-# if __name__ == "__main__":
-#     with open("test_config.yaml", "r") as f:
-#         config = yaml.safe_load(f)
+if __name__ == "__main__":
+    with open("context_config.yaml", "r") as f:
+        config = yaml.safe_load(f)
 
-#     test_dataset = VCSamples_Test(config["dataset_path"], config["Setup"]["context"])
-#     test_loader = torch.utils.data.DataLoader(
-#         test_dataset,
-#         batch_size=config["Setup"]["batch_size"],
-#         shuffle=config["Setup"]["shuffle"],
-#         num_workers=config["Setup"]["num_workers"],
-#     )
-#     print(len(test_loader))
-#     for i, img in enumerate(test_loader):
-#         print(img.shape)
-#         plt.imshow(img[0][0].numpy())
-#         plt.show()
-#         if i == 1:
-#             break
+    test_dataset = VCSamples_Test(config)
+    test_loader = torch.utils.data.DataLoader(
+        test_dataset,
+        batch_size=config["Setup"]["batch_size"],
+        shuffle=config["Setup"]["dataloader_params"]["shuffle"],
+        num_workers=config["Setup"]["dataloader_params"]["num_workers"],
+    )
+    print(len(test_loader))
+    for i, img in enumerate(test_loader):
+        print(img.shape)
+        plt.imshow(img[0][0].numpy())
+        plt.show()
+        if i == 1:
+            break

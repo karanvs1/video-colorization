@@ -111,9 +111,12 @@ class VCNetSetup:
                 )
             )
             if self.config["wandb_log"]:
-                wandb.log({"Train Loss": train_loss})
+                wandb.log({"Train Loss": float(train_loss / len(self.train_loader)),
+                           "Train Learning Rate": self.optimizer.param_groups[0]["lr"]
+                           })
 
             self._save_checkpoint(epoch, self.model, self.optimizer, train_loss)
+            self.save(epoch)
             delta_time += datetime.timedelta(seconds = (time.time() - start_time))
             print(f"Time lapsed = {str(delta_time)}")
             print(f"Time left = {str(delta_time * (epochs - epoch - 1) / (epoch + 1))}")
@@ -134,7 +137,7 @@ class VCNetSetup:
         # * Model
         self.model = VCNet(self.main_config, run_mode = 'train').to(self.device)
         self.scaler = amp.GradScaler()
-        summary(self.model, (self.config["context"] * 2 + 1, 256, 256))
+        
 
         print("Freezing CIC Weights")
 
@@ -151,7 +154,7 @@ class VCNetSetup:
             param.requires_grad = True
         for param in self.model.encoder.pre_model1.parameters():
             param.requires_grad = True
-
+        summary(self.model, (self.config["context"] * 2 + 1, 256, 256))
 
         # * Loss
         # self.criterion = nn.CrossEntropyLoss(reduce=False) #TODO: Change?
@@ -178,7 +181,11 @@ class VCNetSetup:
             wandb.finish()
 
 
-    def save(self):
+    def save(self, epoch=None):
         print("Saving Model!")
-        save_path = os.path.join(self.model_path, "saved_model.pth")
-        torch.save(self.model.state_dict(), save_path)
+        if epoch is not None and epoch % self.config["save_freq"] == 0:
+            save_path = os.path.join(self.model_path, "saved_model_" + str(epoch + 1) + ".pth")
+            torch.save(self.model.state_dict(), save_path)
+        else:
+            save_path = os.path.join(self.model_path, "saved_model.pth")
+            torch.save(self.model.state_dict(), save_path)

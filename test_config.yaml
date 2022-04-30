@@ -1,8 +1,11 @@
 experiment: 'example'
 
 ### Dataset paths
-dataset_path: 'sample_dataset'
-dataset_list: 'sample_davis'   # davis, videvo, both (add sample_ for sample dataset)
+dataset_path: 'video-test'
+dataset_list: 'video_test'   # davis, videvo, both (add sample_ for sample dataset)
+
+
+
 
 ### Save paths
 model_dir: 'saved_models'

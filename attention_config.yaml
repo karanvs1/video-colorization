@@ -1,4 +1,4 @@
-experiment: 'attention_davis'
+experiment: 'attention_davis_contex1'
 
 ### Dataset paths
 dataset_path: 'actual_dataset'    # sample_dataset, actual_dataset
@@ -11,7 +11,7 @@ predictions_dir: 'saved_results'
 
 ### Architecture
 Encoder:
-  context: 3
+  context: 1
   activation: 'relu'
   sim_kernel_size: 3
   mix_kernel_size: 3
@@ -19,7 +19,7 @@ Encoder:
 ### Dataloader
 Setup:
   epochs: 75
-  scheduler: None
+  scheduler: CALR
   # scheduler_params:
     # patience:
   optimizer: 'Adam'
@@ -34,10 +34,10 @@ Setup:
   model_mode: 'attention'       # cic/ context/ attention
   freeze_cic: True
 
-  context: 3
+  context: 1
   batch_size: 16
   dataloader_params:
-    shuffle: True
+    shuffle: False
     num_workers: 4
     pin_memory: True
 

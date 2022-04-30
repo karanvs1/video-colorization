@@ -25,7 +25,9 @@ class VideoColorizer:
     def prepare(self):
         # Model definition
         self.model = VCNet(self.config, run_mode = 'test')
-        self.model.load_state_dict(torch.load(r"./saved_models/attention_davis/saved_model.pth"))
+        # self.model.load_state_dict(torch.load(r"./saved_models/context3_davis/saved_model.pth")) #don't load for cic
+        dictionary = torch.load(r"./saved_models/attention_davis/Checkpoints/chkpt_72.pth")
+        self.model.load_state_dict(dictionary["model_state_dict"])
         self.model.eval()
 
     def save_results(self):

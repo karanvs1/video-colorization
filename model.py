@@ -187,6 +187,7 @@ class Decoder(nn.Module):
         self.model8 = nn.Sequential(*model8)
 
         self.softmax = nn.Softmax(dim=1)
+        
         self.model_out = nn.Conv2d(313, 2, kernel_size=1, padding=0, dilation=1, stride=1, bias=False)
         self.upsample4 = nn.Upsample(scale_factor=4, mode="bilinear")
 
@@ -242,6 +243,7 @@ def load_colorization_weights(model):
     model_dict = model.state_dict()
     try:
         pretrained_dict = torch.load(r"./colorization_weights.pth")
+        
         print("Loaded pretrained weights")
         # print("len dict keys: ", len(list(pretrained_dict.keys())))
     except:
@@ -266,7 +268,7 @@ def load_colorization_weights(model):
 
 
 if __name__ == "__main__":
-    with open("test_config.yaml", "r") as f:
+    with open("attention_config.yaml", "r") as f:
         config = yaml.safe_load(f)
     for k, v in config.items():
         print(f"{k}: {v}")

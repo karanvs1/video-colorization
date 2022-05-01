@@ -1,0 +1,42 @@
+experiment: 'context_davis'
+
+### Dataset paths
+dataset_path: 'actual_dataset'    # sample_dataset, actual_dataset
+dataset_list: 'davis'             # davis, videvo, both (add sample_ for sample dataset)
+
+### Save paths
+model_dir: 'saved_models'
+model_name: 'context1_davis'
+
+### Architecture
+Encoder:
+  context: 1
+  activation: 'relu'
+  sim_kernel_size: 3
+  mix_kernel_size: 3
+
+### Dataloader
+Setup:
+  epochs: 200
+  scheduler: 'CALR'
+  # scheduler_params:
+    # patience:
+  optimizer: 'Adam'
+  optimizer_params:
+    lr: 0.01
+    # betas: (0.9, 0.99)
+    weight_decay: 0.00005
+    eps: 0.00003
+  loss: 'MSE'
+  model_mode: 'context'       # cic/ context/ attention
+  freeze_cic: True
+  context: 1
+  save_freq: 15
+  batch_size: 64
+  dataloader_params:
+    shuffle: False
+    num_workers: 4
+    pin_memory: True
+
+  device: 'cuda'
+  wandb_log: True

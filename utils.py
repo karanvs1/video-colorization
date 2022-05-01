@@ -6,7 +6,7 @@ import numpy as np
 from skimage import color
 import torch
 import torch.nn.functional as F
-
+from torchvision import transforms
 
 def header(head):
     print("-" * 80)
@@ -15,7 +15,7 @@ def header(head):
 
 
 def verify_config(config):
-    assert config["PreprocessNet"]["context"] == config["Setup"]["context"]
+    assert config["Encoder"]["context"] == config["Setup"]["context"]
 
 
 def generate_model_name(config):
@@ -40,16 +40,21 @@ def preprocess_img(img_rgb_orig, HW=(256, 256), resample=3):
 
     img_lab_orig = color.rgb2lab(img_rgb_orig)
     img_lab_rs = color.rgb2lab(img_rgb_rs)
+    # img_ab_rs = np.zeros((64,64,2))
 
     img_l_orig = img_lab_orig[:, :, 0]
     img_l_rs = img_lab_rs[:, :, 0]
     img_ab_orig = img_lab_orig[:, :, 1:]
     img_ab_rs = img_lab_rs[:, :, 1:]
 
-    tens_orig_l = torch.Tensor(img_l_orig)[None, None, :, :]
-    tens_rs_l = torch.Tensor(img_l_rs)[None, None, :, :]
-    tens_orig_ab = torch.Tensor(img_ab_orig)[None, :, :, :]
-    tens_rs_ab = torch.Tensor(img_ab_rs)[None, :, :, :]
+    # img_ab_rs = np.asarray(Image.fromarray(transforms.Resize(64)(transforms.ToPILImage(img_lab_rs[:, :, 1:]))))
+    # img_ab_rs[:, :, 0] =resize_img(img_lab_rs[:, :, 1], (64, 64))
+    # img_ab_rs[:, :, 1] =resize_img(img_lab_rs[:, :, 2], (64, 64))
+
+    tens_orig_l = torch.Tensor(img_l_orig)[None, None, :, :] # 1 x 1 x H_orig x W_orig
+    tens_rs_l = torch.Tensor(img_l_rs)[None, None, :, :] # 1 x 1 x H_rs x W_rs
+    tens_orig_ab = torch.Tensor(img_ab_orig)[None, :, :, :] # 1 x 2 x H_orig x W_orig
+    tens_rs_ab = torch.Tensor(img_ab_rs)[None, :, :, :] # 1 x 2 x H_rs x W_rs
 
     return (tens_orig_l, tens_rs_l, tens_orig_ab, tens_rs_ab)
 

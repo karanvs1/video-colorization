@@ -1,4 +1,5 @@
 # MODEL Architecture and declaration
+from distutils.command.config import config
 import yaml
 import torch
 import torch.nn.functional as F
@@ -22,10 +23,9 @@ class PreprocessNetwork(nn.Module):
             sim_layers.append(layer)
 
         self.similarity = nn.ModuleList(sim_layers)
-        self.activation = nn.Sigmoid()
         self.mixing = nn.Conv2d(
             in_channels=2 * self.context + 1,
-            out_channels=1,
+            out_channels=2 * self.context + 1,
             kernel_size=self.config["mix_kernel_size"],
             stride=1,
             padding="same",
@@ -34,22 +34,21 @@ class PreprocessNetwork(nn.Module):
 
         self.initialize_weights()
 
-    def forward(self, x):  # B x 7 x 256 x 256
+    def forward(self, x, mode):  # B x 7 x 256 x 256
+        if mode == "context":
+            return x
         base_frame = x[:, self.context].unsqueeze(1)  # B x 1 x 256 x 256
         pairwise_processed = []
         idx = 0
         for c in range(self.context * 2 + 1):
             if c != self.context:
-                # print("Frame : ", c)
                 check_frame = x[:, c].unsqueeze(1)  # B x 1 x 256 x 256
                 if c > self.context:
                     frame_pair = torch.cat((check_frame, base_frame), dim=1)
                 else:
                     frame_pair = torch.cat((base_frame, check_frame), dim=1)
 
-                processed_frame = self.activation(self.similarity[idx](frame_pair))
-
-                elementwise_frame = processed_frame * check_frame
+                elementwise_frame = self.similarity[idx](frame_pair) * check_frame
                 pairwise_processed.append(elementwise_frame)
                 idx += 1
 
@@ -74,13 +73,26 @@ class PreprocessNetwork(nn.Module):
 class Encoder(nn.Module):
     """_summary_"""
 
-    def __init__(self):
+    def __init__(self, config):
         super(Encoder, self).__init__()
-        model1 = [nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1, bias=True)]
-        model1 += [nn.ReLU(True)]
-        model1 += [nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1, bias=True)]
-        model1 += [nn.ReLU(True)]
-        model1 += [nn.BatchNorm2d(64)]
+        self.context = config["context"]
+        self.preprocess = PreprocessNetwork(config)
+
+        pre_model1 = [
+            nn.Conv2d(self.context * 2 + 1, 64, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.ReLU(True),
+            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1, bias=True),
+            nn.ReLU(True),
+            nn.BatchNorm2d(64),
+        ]
+
+        model1 = [
+            nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.ReLU(True),
+            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1, bias=True),
+            nn.ReLU(True),
+            nn.BatchNorm2d(64),
+        ]
 
         model2 = [nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1, bias=True)]
         model2 += [nn.ReLU(True)]
@@ -112,23 +124,33 @@ class Encoder(nn.Module):
         model5 += [nn.ReLU(True)]
         model5 += [nn.BatchNorm2d(512)]
 
+        self.pre_model1 = nn.Sequential(*pre_model1)
         self.model1 = nn.Sequential(*model1)
         self.model2 = nn.Sequential(*model2)
         self.model3 = nn.Sequential(*model3)
         self.model4 = nn.Sequential(*model4)
         self.model5 = nn.Sequential(*model5)
 
-    def forward(self, x):
+    def forward(self, x, mode):
+        # print(header(mode))
         x = normalize_l(x)
-        x = self.model1(x)
+        if mode == "cic":
+            # print(x.shape)
+            assert x.size(1) == 1, "Should be a single grayscale frame"
+            x = self.model1(x)
+        elif mode == "context" or mode == "attention":
+            
+            x = x.squeeze(0)
+            assert x.size(1) > 1, "Should be a set of grayscale frames"
+            # print(header(mode))
+            x = self.preprocess(x, mode)
+            x = self.pre_model1(x)
+
         x = self.model2(x)
         x = self.model3(x)
         x = self.model4(x)
         x = self.model5(x)
         return x
-
-    def init_weights(self):
-        pass
 
 
 class Decoder(nn.Module):
@@ -165,6 +187,7 @@ class Decoder(nn.Module):
         self.model8 = nn.Sequential(*model8)
 
         self.softmax = nn.Softmax(dim=1)
+        
         self.model_out = nn.Conv2d(313, 2, kernel_size=1, padding=0, dilation=1, stride=1, bias=False)
         self.upsample4 = nn.Upsample(scale_factor=4, mode="bilinear")
 
@@ -172,15 +195,13 @@ class Decoder(nn.Module):
         x = self.model6(x)
         x = self.model7(x)
         x = self.model8(x)
-        x = self.softmax(x)
-        outlab = self.model_out(x)
+        probs = self.softmax(x)
+        # outlab = x
+        outlab = self.model_out(probs)
         outlab = self.upsample4(outlab)
         outlab = unnormalize_ab(outlab)
 
-        return outlab
-
-    def init_weights(self):
-        pass
+        return outlab, probs
 
 
 class VCLSTM(nn.Module):
@@ -199,18 +220,20 @@ class VCLSTM(nn.Module):
 class VCNet(nn.Module):
     """_summary_"""
 
-    def __init__(self, config):
+    def __init__(self, config, run_mode='train'):
+        self.mode = config["Setup"]["model_mode"]
+        print("Model MODE: ", self.mode)
         super(VCNet, self).__init__()
-        self.preprocess = PreprocessNetwork(config["PreprocessNet"])
-        self.encoder = Encoder()
-        self.encoder = load_colorization_weights(model=self.encoder)
+        self.encoder = Encoder(config["Encoder"])
+        if run_mode == 'train':
+            self.encoder = load_colorization_weights(model=self.encoder)
         # self.cnnlstm = VCLSTM()
         self.decoder = Decoder()
-        self.decoder = load_colorization_weights(model=self.decoder)
+        if run_mode == 'train':
+            self.decoder = load_colorization_weights(model=self.decoder)
 
-    def forward(self, x):
-        x = self.preprocess(x)
-        x = self.encoder(x)
+    def forward(self, x, mode='context'):
+        x = self.encoder(x, self.mode)
         x = self.decoder(x)
 
         return x
@@ -219,11 +242,12 @@ class VCNet(nn.Module):
 def load_colorization_weights(model):
     model_dict = model.state_dict()
     try:
-        pretrained_dict = torch.load(r"colorization_weights.pth")
+        pretrained_dict = torch.load(r"./colorization_weights.pth")
+        
+        print("Loaded pretrained weights")
         # print("len dict keys: ", len(list(pretrained_dict.keys())))
     except:
         import torch.utils.model_zoo as model_zoo
-
         model.load_state_dict(
             model_zoo.load_url(
                 "https://colorizers.s3.us-east-2.amazonaws.com/colorization_release_v2-9b330a0b.pth",
@@ -239,11 +263,35 @@ def load_colorization_weights(model):
     model_dict.update(pretrained_dict)
     model.load_state_dict(model_dict)
 
+
     return model
 
 
 if __name__ == "__main__":
-    with open("test_config.yaml", "r") as f:
+    with open("attention_config.yaml", "r") as f:
         config = yaml.safe_load(f)
-    model = VCNet(config)
-    print(summary(model, (7, 256, 256)))
+    for k, v in config.items():
+        print(f"{k}: {v}")
+    model = VCNet(config).to(config['Setup']["device"])
+
+    for param in model.parameters():
+        param.requires_grad = False
+
+    for param in model.encoder.preprocess.parameters():
+        param.requires_grad = True
+
+    for param in model.encoder.model1.parameters():
+        param.requires_grad = True
+    
+    for param in model.encoder.pre_model1.parameters():
+        param.requires_grad = True
+
+    # summary(model, torch.zeros((2, 9, 256, 256)).cuda())
+
+    for name, param in model.named_parameters():
+        if param.requires_grad == True:
+            print(name)
+
+    summary(model, (7, 256, 256))
+
+

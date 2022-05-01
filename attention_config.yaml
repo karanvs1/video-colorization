@@ -11,7 +11,7 @@ predictions_dir: 'saved_results'
 
 ### Architecture
 Encoder:
-  context: 1
+  context: 3
   activation: 'relu'
   sim_kernel_size: 3
   mix_kernel_size: 3
@@ -34,12 +34,12 @@ Setup:
   model_mode: 'attention'       # cic/ context/ attention
   freeze_cic: True
 
-  context: 1
+  context: 3
   batch_size: 16
   dataloader_params:
     shuffle: False
     num_workers: 4
     pin_memory: True
 
-  device: 'cuda'
+  device: 'cpu'
   wandb_log: True

@@ -79,7 +79,7 @@ class Encoder(nn.Module):
         self.preprocess = PreprocessNetwork(config)
 
         pre_model1 = [
-            nn.Conv2d(self.context * 2 + 1, 64, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.Conv2d((self.context * 2 + 1) * 64, 64, kernel_size=3, stride=1, padding=1, bias=True),
             nn.ReLU(True),
             nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1, bias=True),
             nn.ReLU(True),
@@ -139,12 +139,20 @@ class Encoder(nn.Module):
             assert x.size(1) == 1, "Should be a single grayscale frame"
             x = self.model1(x)
         elif mode == "context" or mode == "attention":
-            
+
             x = x.squeeze(0)
             assert x.size(1) > 1, "Should be a set of grayscale frames"
-            # print(header(mode))
             x = self.preprocess(x, mode)
-            x = self.pre_model1(x)
+
+            model1_out = torch.empty((x.shape[0], x.shape[1] * 64, 128, 128))
+            for i in range(x.shape[1]):
+                # print("x channel ", x[:, i].unsqueeze(1).shape)
+                l1_out = self.model1(x[:, i, :, :].unsqueeze(1))
+                # print("l1 out ", l1_out.shape)
+                torch.cat((model1_out, l1_out), axis=1)
+                # print("model 1 ", model1_out.shape)
+
+            x = self.pre_model1(model1_out)
 
         x = self.model2(x)
         x = self.model3(x)
@@ -187,7 +195,7 @@ class Decoder(nn.Module):
         self.model8 = nn.Sequential(*model8)
 
         self.softmax = nn.Softmax(dim=1)
-        
+
         self.model_out = nn.Conv2d(313, 2, kernel_size=1, padding=0, dilation=1, stride=1, bias=False)
         self.upsample4 = nn.Upsample(scale_factor=4, mode="bilinear")
 
@@ -220,19 +228,19 @@ class VCLSTM(nn.Module):
 class VCNet(nn.Module):
     """_summary_"""
 
-    def __init__(self, config, run_mode='train'):
+    def __init__(self, config, run_mode="train"):
         self.mode = config["Setup"]["model_mode"]
         print("Model MODE: ", self.mode)
         super(VCNet, self).__init__()
         self.encoder = Encoder(config["Encoder"])
-        if run_mode == 'train':
+        if run_mode == "train":
             self.encoder = load_colorization_weights(model=self.encoder)
         # self.cnnlstm = VCLSTM()
         self.decoder = Decoder()
-        if run_mode == 'train':
+        if run_mode == "train":
             self.decoder = load_colorization_weights(model=self.decoder)
 
-    def forward(self, x, mode='context'):
+    def forward(self, x, mode="context"):
         x = self.encoder(x, self.mode)
         x = self.decoder(x)
 
@@ -243,11 +251,12 @@ def load_colorization_weights(model):
     model_dict = model.state_dict()
     try:
         pretrained_dict = torch.load(r"./colorization_weights.pth")
-        
+
         print("Loaded pretrained weights")
         # print("len dict keys: ", len(list(pretrained_dict.keys())))
     except:
         import torch.utils.model_zoo as model_zoo
+
         model.load_state_dict(
             model_zoo.load_url(
                 "https://colorizers.s3.us-east-2.amazonaws.com/colorization_release_v2-9b330a0b.pth",
@@ -263,16 +272,16 @@ def load_colorization_weights(model):
     model_dict.update(pretrained_dict)
     model.load_state_dict(model_dict)
 
-
     return model
 
 
 if __name__ == "__main__":
     with open("attention_config.yaml", "r") as f:
         config = yaml.safe_load(f)
-    for k, v in config.items():
-        print(f"{k}: {v}")
-    model = VCNet(config).to(config['Setup']["device"])
+
+    # for k, v in config.items():
+    #     print(f"{k}: {v}")
+    model = VCNet(config).to(config["Setup"]["device"])
 
     for param in model.parameters():
         param.requires_grad = False
@@ -282,16 +291,10 @@ if __name__ == "__main__":
 
     for param in model.encoder.model1.parameters():
         param.requires_grad = True
-    
+
     for param in model.encoder.pre_model1.parameters():
         param.requires_grad = True
 
     # summary(model, torch.zeros((2, 9, 256, 256)).cuda())
 
-    for name, param in model.named_parameters():
-        if param.requires_grad == True:
-            print(name)
-
     summary(model, (7, 256, 256))
-
-

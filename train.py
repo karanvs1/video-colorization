@@ -14,7 +14,6 @@ from utils import *
 from dataloader import VCSamples
 
 
-
 class VCNetSetup:
     def __init__(self, config):
         self.main_config = config
@@ -28,7 +27,6 @@ class VCNetSetup:
             os.mkdir("saved_models")
         except:
             print("saved_models already exists!")
-
 
     def _save_params(self, experiment_name, metadata):
         try:
@@ -54,7 +52,6 @@ class VCNetSetup:
             yaml.dump(self.main_config, metadata, indent=4, default_flow_style=False)
         print("Model parameters and configuration saved!")
 
-
     def _save_checkpoint(self, epoch, model, optimizer, loss):
         print("Saving Checkpoint!")
         checkpoint_path = os.path.join(self.checkpoint_path, "chkpt_" + str(epoch) + ".pth")
@@ -62,7 +59,6 @@ class VCNetSetup:
             {"epoch": epoch, "model_state_dict": model.state_dict(), "optimizer_state_dict": optimizer.state_dict(), "loss": loss},
             checkpoint_path,
         )
-
 
     def _training_loop(self, train_loader):
         # Dataloader loop (batches)
@@ -75,7 +71,7 @@ class VCNetSetup:
 
             images = images.to(self.device, non_blocking=True)
             gt = gt.to(self.device, non_blocking=True)
-            
+
             # with amp.autocast():
             output, _ = self.model(images, self.config["model_mode"])
 
@@ -87,7 +83,8 @@ class VCNetSetup:
             # self.scaler.scale(loss).backward()
             # self.scaler.step(self.optimizer)
             # self.scaler.update()
-            if self.scheduler is not None: self.scheduler.step()
+            if self.scheduler is not None:
+                self.scheduler.step()
 
             total_loss += float(loss.item())
             batch_bar.set_postfix(
@@ -100,8 +97,8 @@ class VCNetSetup:
 
     def train(self):
         epochs = self.config["epochs"]
-        delta_time = datetime.timedelta(seconds = 0)
-        
+        delta_time = datetime.timedelta(seconds=0)
+
         if self.config["wandb_log"]:
             wandb.init(project="test-project", entity="acvc", config=self.main_config)
             wandb.watch(self.model, criterion=self.criterion, log="all", log_freq=self.config["batch_size"], idx=None)
@@ -116,13 +113,13 @@ class VCNetSetup:
                 )
             )
             if self.config["wandb_log"]:
-                wandb.log({"Train Loss": float(train_loss / len(self.train_loader)),
-                           "Train Learning Rate": self.optimizer.param_groups[0]["lr"]
-                           })
+                wandb.log(
+                    {"Train Loss": float(train_loss / len(self.train_loader)), "Train Learning Rate": self.optimizer.param_groups[0]["lr"]}
+                )
 
-            self._save_checkpoint(epoch, self.model, self.optimizer, train_loss)
+            # self._save_checkpoint(epoch, self.model, self.optimizer, train_loss)
             self.save(epoch)
-            delta_time += datetime.timedelta(seconds = (time.time() - start_time))
+            delta_time += datetime.timedelta(seconds=(time.time() - start_time))
             print(f"Time lapsed = {str(delta_time)}")
             print(f"Time left = {str(delta_time * (epochs - epoch - 1) / (epoch + 1))}")
 
@@ -133,23 +130,18 @@ class VCNetSetup:
 
         # * Dataloader
         train_dataset = VCSamples(self.main_config)
-        self.train_loader = DataLoader(
-            train_dataset, 
-            batch_size=self.config["batch_size"], 
-            **self.config["dataloader_params"]
-        )
+        self.train_loader = DataLoader(train_dataset, batch_size=self.config["batch_size"], **self.config["dataloader_params"])
 
         # * Model
-        self.model = VCNet(self.main_config, run_mode = 'train').to(self.device)
+        self.model = VCNet(self.main_config, run_mode="train").to(self.device)
         self.scaler = amp.GradScaler()
-        
 
         print("Freezing CIC Weights")
 
         # * Model Layers (Freeze)
         for param in self.model.parameters():
             param.requires_grad = False
-            
+
         # * CIC Encoder Layer (Unfreeze)
         for param in self.model.encoder.model1.parameters():
             param.requires_grad = True
@@ -166,25 +158,24 @@ class VCNetSetup:
         self.criterion = nn.MSELoss()
 
         # * Optimizer
-        if self.config['optimizer'] == 'Adam':
+        if self.config["optimizer"] == "Adam":
             self.optimizer = optim.Adam(self.model.parameters(), **self.optimizer_params)
-        elif self.config['optimizer'] == 'SGD':
-            self.optimizer = optim.SGD(self.model.parameters(), lr = self.optimizer.param_groups[0]["lr"], **self.optimizer_params)
-        elif self.config['optimizer'] == 'RMS':
+        elif self.config["optimizer"] == "SGD":
+            self.optimizer = optim.SGD(self.model.parameters(), lr=self.optimizer.param_groups[0]["lr"], **self.optimizer_params)
+        elif self.config["optimizer"] == "RMS":
             self.optimizer = optim.RMSprop(self.model.parameters(), **self.optimizer_params)
 
         # * Scheduler
-        if self.config['scheduler'] == 'MultiStepLR':
+        if self.config["scheduler"] == "MultiStepLR":
             self.scheduler = optim.lr_scheduler.MultiStepLR(self.optimizer, **self.config["sched_params"])
-        elif self.config["scheduler"] == 'CALR':
-            self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=self.config["epochs"]*len(self.train_loader))
+        elif self.config["scheduler"] == "CALR":
+            self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=self.config["epochs"] * len(self.train_loader))
             # self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer, **self.config["sched_params"])
         else:
             self.scheduler = None
 
         if self.config["wandb_log"]:
             wandb.finish()
-
 
     def save(self, epoch=None):
         print("Saving Model!")

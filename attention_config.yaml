@@ -1,4 +1,4 @@
-experiment: 'attention_davis_contex1'
+experiment: 'attention_fullcic_davis_c3'
 
 ### Dataset paths
 dataset_path: 'actual_dataset'    # sample_dataset, actual_dataset
@@ -6,7 +6,7 @@ dataset_list: 'davis'             # davis, videvo, both (add sample_ for sample 
 
 ### Save paths
 model_dir: 'saved_models'
-model_name: 'attention_davis'
+model_name: 'attention_fullcic_davis'
 predictions_dir: 'saved_results'
 
 ### Architecture
@@ -18,7 +18,7 @@ Encoder:
 
 ### Dataloader
 Setup:
-  epochs: 75
+  epochs: 200
   scheduler: CALR
   # scheduler_params:
     # patience:
@@ -33,13 +33,13 @@ Setup:
 
   model_mode: 'attention'       # cic/ context/ attention
   freeze_cic: True
-
+  save_freq: 10
   context: 3
-  batch_size: 16
+  batch_size: 32
   dataloader_params:
     shuffle: False
     num_workers: 4
     pin_memory: True
 
-  device: 'cpu'
+  device: 'cuda'
   wandb_log: True

@@ -81,7 +81,7 @@ class Encoder(nn.Module):
         pre_model1 = [
             nn.Conv2d((self.context * 2 + 1) * 64, 64, kernel_size=3, stride=1, padding=1, bias=True),
             nn.ReLU(True),
-            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1, bias=True),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, bias=True),
             nn.ReLU(True),
             nn.BatchNorm2d(64),
         ]
@@ -266,6 +266,7 @@ def load_colorization_weights(model):
                 file_name="colorization_weights.pth",
             )
         )
+        pretrained_dict = torch.load(r"./colorization_weights.pth")
     pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
     # print("\nLoaded pretrained weights:", pretrained_dict.keys())
     # print(len(list(pretrained_dict.keys())))

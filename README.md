@@ -1,2 +1,2 @@
-# video-colorization
-Video Colorization Implementations
+# Video Colorization 
+Video Colorization Network with a modified CIC Architecture for temporal coherency
